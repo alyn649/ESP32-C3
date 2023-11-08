@@ -45,7 +45,7 @@
 static const char *TAG = "DB_ESP32";
 
 uint8_t DB_WIFI_MODE = 1; // 1=Wifi AP mode, 2=Wifi client mode
-uint8_t DEFAULT_SSID[32] = "DroneBridge ESP32";
+uint8_t DEFAULT_SSID[32] = "Goose's DB";
 uint8_t DEFAULT_PWD[64] = "dronebridge";
 char DEFAULT_AP_IP[32] = "192.168.2.1";
 char CURRENT_CLIENT_IP[32] = "192.168.2.1";
@@ -55,10 +55,12 @@ uint8_t SERIAL_PROTOCOL = 4;  // 1=MSP, 4=MAVLink/transparent
 uint8_t DB_UART_PIN_TX = GPIO_NUM_33;
 uint8_t DB_UART_PIN_RX = GPIO_NUM_32;
 # else
-uint8_t DB_UART_PIN_TX = GPIO_NUM_17;
-uint8_t DB_UART_PIN_RX = GPIO_NUM_16;
+//uint8_t DB_UART_PIN_TX = GPIO_NUM_21;
+//uint8_t DB_UART_PIN_RX = GPIO_NUM_20;
+uint8_t DB_UART_PIN_TX = 12;
+uint8_t DB_UART_PIN_RX = 11;
 #endif
-int DB_UART_BAUD_RATE = 115200;
+long int DB_UART_BAUD_RATE = 115200;
 uint16_t TRANSPARENT_BUF_SIZE = 64;
 uint8_t LTM_FRAME_NUM_BUFFER = 1;
 uint8_t MSP_LTM_SAMEPORT = 0;
@@ -193,8 +195,8 @@ void init_wifi_apmode() {
                     .max_connection = 10
             },
     };
-    xthal_memcpy(wifi_config.ap.ssid, DEFAULT_SSID, 32);
-    xthal_memcpy(wifi_config.ap.password, DEFAULT_PWD, 64);
+    memcpy(wifi_config.ap.ssid, DEFAULT_SSID, 32);
+    memcpy(wifi_config.ap.password, DEFAULT_PWD, 64);
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     ESP_ERROR_CHECK(esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11B));
@@ -245,8 +247,8 @@ void init_wifi_clientmode() {
                     .password = "dronebridge"
             },
     };
-    xthal_memcpy(wifi_config.sta.ssid, DEFAULT_SSID, 32);
-    xthal_memcpy(wifi_config.sta.password, DEFAULT_PWD, 64);
+    memcpy(wifi_config.sta.ssid, DEFAULT_SSID, 32);
+    memcpy(wifi_config.sta.password, DEFAULT_PWD, 64);
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
@@ -348,6 +350,9 @@ void read_settings_nvs() {
 }
 
 void app_main() {
+
+    ESP_LOGI(TAG, "Test LOGI");
+
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES) {
         ESP_ERROR_CHECK(nvs_flash_erase());

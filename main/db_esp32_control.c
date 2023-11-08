@@ -33,7 +33,7 @@
 #include "db_protocol.h"
 #include "tcp_server.h"
 
-#define UART_NUM UART_NUM_1
+#define UART_NUM UART_NUM_0
 
 #define TAG "DB_CONTROL"
 #define TRANS_RD_BYTES_NUM  8   // amount of bytes read form serial port at once when transparent is selected
@@ -57,6 +57,8 @@ int8_t num_connected_tcp_clients = 0;
 int8_t num_connected_udp_clients = 0;
 
 int open_serial_socket() {
+    ESP_LOGI(TAG, "Open Serial Socket");
+
     int serial_socket;
     uart_config_t uart_config = {
             .baud_rate = DB_UART_BAUD_RATE,
@@ -66,15 +68,16 @@ int open_serial_socket() {
             .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
     };
     ESP_ERROR_CHECK(uart_param_config(UART_NUM, &uart_config));
-    ESP_ERROR_CHECK(uart_set_pin(UART_NUM, DB_UART_PIN_TX, DB_UART_PIN_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+    ESP_ERROR_CHECK(uart_set_pin(UART_NUM, 21, 20, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
     ESP_ERROR_CHECK(uart_driver_install(UART_NUM, 1024, 0, 0, NULL, 0));
-    if ((serial_socket = open("/dev/uart/2", O_RDWR)) == -1) {
-        ESP_LOGE(TAG, "Cannot open UART2");
+    
+    if ((serial_socket = open("/dev/uart/0", O_RDWR)) == -1) {
+        ESP_LOGE(TAG, "Cannot open UART0");
         close(serial_socket);
         uart_driver_delete(UART_NUM);
         return ESP_FAIL;
     }
-    esp_vfs_dev_uart_use_driver(2);
+    esp_vfs_dev_uart_use_driver(UART_NUM);
     return serial_socket;
 }
 
@@ -202,7 +205,7 @@ void parse_transparent(int tcp_clients[], struct db_udp_connection_t *udp_conn, 
  */
 void handle_tcp_master(const int tcp_master_socket, int tcp_clients[]) {
     struct sockaddr_in6 source_addr; // Large enough for both IPv4 or IPv6
-    uint addr_len = sizeof(source_addr);
+    u_long addr_len = sizeof(source_addr);
     int new_tcp_client = accept(tcp_master_socket, (struct sockaddr *) &source_addr, &addr_len);
     if (new_tcp_client > 0) {
         for (int i = 0; i < CONFIG_LWIP_MAX_ACTIVE_TCP; i++) {
@@ -293,7 +296,9 @@ void update_udp_broadcast(int64_t *last_update, struct db_udp_connection_t *conn
 }
 
 _Noreturn void control_module_tcp() {
+    ESP_LOGI(TAG, "inside control module");
     int uart_socket = open_serial_socket();
+    ESP_LOGI(TAG, "past open serial port");
     int tcp_master_socket = open_tcp_server(app_port_proxy);
 
     struct db_udp_connection_t udp_conn;
@@ -382,5 +387,8 @@ _Noreturn void control_module_tcp() {
  * MAVLink is passed through (fully transparent). Can be used with any protocol.
  */
 void control_module() {
-    xTaskCreate(&control_module_tcp, "control_tcp", 40960, NULL, 5, NULL);
+    xTaskCreatePinnedToCore(&control_module_tcp, "control_tcp", 60000, NULL, 5, NULL, 0);
+    ESP_LOGI(TAG, "control module");
+    //xTaskCreate(&control_module_tcp, "control_tcp", 262144, NULL, 5, NULL);
+
 }
